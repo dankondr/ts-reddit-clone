@@ -1,11 +1,11 @@
 import { MikroORM } from '@mikro-orm/core';
+import mikroOrmConfig from './mikro-orm.config';
 
 const main = async () => {
-  const orm = await MikroORM.init({
-    dbName: 'reddit',
-    type: 'postgresql',
-    debug: !__prod__,
-  });
+  const orm = await MikroORM.init(mikroOrmConfig);
+  await orm.getMigrator().up();
 };
 
-main();
+main().catch((err) => {
+  console.error(err);
+});
