@@ -38,10 +38,19 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { em, req }: DBContext): Promise<User | null> {
+    if (!req.session.userId) {
+      return null;
+    }
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => Boolean)
   async register(
     @Arg('options') { username, password }: UsernamePasswordInput,
-    @Ctx() { em }: DBContext
+    @Ctx() { em, req }: DBContext
   ): Promise<UserResponse> {
     const userExists = em.findOne(User, { username }) !== null;
     if (userExists) {
@@ -60,13 +69,16 @@ export class UserResolver {
       password: hashedPassword,
     });
     await em.persistAndFlush(user);
+
+    req.session.userId = user.id;
+
     return { user };
   }
 
   @Query(() => User)
   async login(
     @Arg('options') { username, password }: UsernamePasswordInput,
-    @Ctx() { em }: DBContext
+    @Ctx() { em, req }: DBContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username });
     if (!user) {
@@ -90,6 +102,9 @@ export class UserResolver {
         ],
       };
     }
-    return { user: user };
+
+    req.session.userId = user.id;
+
+    return { user };
   }
 }
